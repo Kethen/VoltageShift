@@ -178,7 +178,10 @@ IOReturn VoltageShiftAnVMSR::newUserClient( task_t owningTask, void * securityID
     
     IOReturn ioReturn = kIOReturnSuccess;
     
-    
+    if (IOUserClient::clientHasPrivilege(securityID, kIOClientPrivilegeAdministrator) == kIOReturnNotPrivileged){
+        IOLog("VoltageShiftAnVMSR: Client does not have %s privilege\n", kIOClientPrivilegeAdministrator);
+        return kIOReturnError;
+    }
     
     AnVMSRUserClient *client = NULL;
 

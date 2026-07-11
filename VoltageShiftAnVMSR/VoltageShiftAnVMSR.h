@@ -8,7 +8,6 @@
 #include <IOKit/IOBufferMemoryDescriptor.h>
 
 
-
 // Added System wdmsr lib.
 #include <libkern/libkern.h>
 
