@@ -2,6 +2,7 @@
 
 #include "VoltageShiftAnVMSR.h"
 
+#define DEBUG=1
 
 // Replace used the system wdmsr
 /*
@@ -83,12 +84,76 @@ uint64_t VoltageShiftAnVMSR::a_rdmsr (uint32_t msr)
    
 }
 
+static void sync_610(uint64_t value){
+    // as discussed at https://github.com/daliansky/XiaoMi-Pro-Hackintosh/issues/174
+    const uint64_t target = 0xfed159a0;
+    IOMemoryDescriptor *target_md_wr = IOMemoryDescriptor::withPhysicalAddress(target, sizeof(uint64_t), kIODirectionOut);
+    IOMemoryDescriptor *target_md_rd = IOMemoryDescriptor::withPhysicalAddress(target, sizeof(uint64_t), kIODirectionOut);
+    uint64_t cur_value = 0;
+    IOByteCount bytes_written = 0;
+    IOByteCount bytes_read = 0;
+    if (target_md_wr == NULL){
+        #ifdef  DEBUG
+        IOLog("%s: failed creating IOMemoryDescriptor for writing\n", __func__);
+        #endif
+        goto cleanup;
+    }
+    if (target_md_rd == NULL){
+        #ifdef  DEBUG
+        IOLog("%s: failed creating IOMemoryDescriptor for reading\n", __func__);
+        #endif
+        goto cleanup;
+    }
+    
+    bytes_read = target_md_wr->readBytes(0, &cur_value, sizeof(cur_value));
+    if (bytes_read != sizeof(cur_value)){
+        #ifdef  DEBUG
+        IOLog("%s: failed reading bytes before writing\n", __func__);
+        #endif
+        goto cleanup;
+    }
+    #ifdef  DEBUG
+    IOLog("%s: setting 0x%llx from 0x%llx to 0x%llx\n", __func__, target, cur_value, value);
+    #endif
+
+    bytes_written = target_md_wr->writeBytes(0, &value, sizeof(value));
+    if (bytes_written != sizeof(value)){
+        #ifdef  DEBUG
+        IOLog("%s: failed writing bytes\n", __func__);
+        #endif
+        goto cleanup;
+    }
+
+    bytes_read = target_md_rd->readBytes(0, &cur_value, sizeof(cur_value));
+    if (bytes_read != sizeof(cur_value)){
+        #ifdef  DEBUG
+        IOLog("%s: failed reading bytes after writing\n", __func__);
+        #endif
+        goto cleanup;
+    }
+
+    #ifdef  DEBUG
+    IOLog("%s: 0x%llx is now 0x%llx\n", __func__, target, cur_value);
+    #endif
+
+    cleanup:
+    if (target_md_rd){
+        target_md_rd->release();
+    }
+    if (target_md_wr){
+        target_md_wr->release();
+    }
+}
+
 void VoltageShiftAnVMSR::a_wrmsr(uint32_t msr, uint64_t value)
 {
   #if TARGET_CPU_ARM64
     return;
  #elif TARGET_CPU_X86_64
     wrmsr64(msr, value);
+    if (msr == 0x610){
+        sync_610(value);
+    }
  #endif
 
     

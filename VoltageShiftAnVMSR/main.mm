@@ -271,7 +271,7 @@ int writeOCMailBox (int domain,int offset){
     
     
     
-    
+    printf("0x%x 0x%llx\n", in.msr, in.param);
     if (ret != KERN_SUCCESS) {
         printf("cpu OC mailbox write failed\n");
         return 0;
@@ -1075,7 +1075,7 @@ int setPower(int argc,int p1,int p2){
                                                &out,
                                                &outsize
                                                );
-               
+               printf("0x%x 0x%llx\n", in.msr, in.param);
                
                if (ret != KERN_SUCCESS)
                {
@@ -2143,6 +2143,7 @@ int main(int argc, const char * argv[])
 
        // printf("RDMSR %x returns value 0x%llx\n", (unsigned int)in.msr, (unsigned long long)out.param);
                 printBits(sizeof(out.param), &out.param);
+        printf("0x%llx\n", out.param);
         
     } else if (!strncmp(parameter, "write", 5)) {
         if (argc < 4)
